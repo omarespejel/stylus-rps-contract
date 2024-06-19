@@ -290,9 +290,9 @@ Replace `<PRIVKEY_FILE_PATH>` with the path to a file containing your private ke
 
 The deployment process will estimate the gas required and send two transactions: one for deployment and another for activation. Once the transactions are confirmed, your contract will be live on the Stylus testnet.
 
-Congratulations! You've successfully written and deployed your first Stylus smart contract using Rust. You can now interact with the contract using the exported Solidity ABI or by calling the methods directly from Rust.
+ Once the contract is deployed, you can see it in the [Stylus Explorer](https://stylusv2-explorer.arbitrum.io/address/0x4FfDd1A529e8CC5c36D4f97012F1160a4632a0f5).
 
-For more advanced topics and features, refer to the Stylus SDK documentation and explore the various examples and tutorials available in the Stylus repository.
+Congratulations! You've successfully written and deployed your first Stylus smart contract using Rust. You can now interact with the contract using the exported Solidity ABI or by calling the methods directly from Rust.
 
 Remember to always test your contracts thoroughly and handle errors appropriately before deploying them to a production environment.
 

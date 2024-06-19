@@ -83,7 +83,7 @@ impl From<Choice> for U256 {
 
 These implementations allow us to convert between `U256` and `Choice` easily. When converting from `U256` to `Choice`, we map the values 0, 1, 2, and 3 to the corresponding `Choice` variants. If an invalid value is provided, we panic with an error message. When converting from `Choice` to `U256`, we map each variant to its corresponding numeric value.
 
-Now, let's define the storage layout for our contract using the `sol_storage!` macro. Add the following code after the `From` trait implementations:
+Now, let's define the storage layout for our contract using the `sol_storage!` macro:
 
 ```rust
 sol_storage! {
@@ -138,7 +138,11 @@ pub fn new(&mut self, bet: U256) -> Result<(), Vec<u8>> {
     Ok(())
 }
 ```
-The `new` method is used to initialize the contract with a bet amount. It takes a `U256` parameter representing the bet amount and sets the initial state of the contract. It performs the following actions:
+The `new` method is used to initialize the contract with a bet amount. It takes a `U256` parameter representing the bet amount and sets the initial state of the contract. 
+
+Note the use of `&mut self` as the method argument. In Rust, `&mut self` indicates that the method has mutable access to the contract's state. It allows the method to modify the contract's storage variables using the `set` methods provided by the Stylus SDK.
+
+The `new` method performs the following actions:
 - Sets the `bet` amount using `self.bet.set(bet)`.
 - Initializes the `stage` to 0 using `self.stage.set(U256::from(0))`.
 - Sets the `locked` flag to `false` using `self.locked.set(false)`.
@@ -152,6 +156,8 @@ pub fn lock(&mut self) -> Result<(), Vec<u8>> {
 }
 ```
 The `lock` method is used to lock the contract, preventing further commits from players. It sets the `locked` flag to `true` using `self.locked.set(true)` and returns `Ok(())` to indicate success.
+
+Again, `&mut self` is used to allow the method to modify the contract's state.
 
 3. `unlock` method:
 ```rust
@@ -191,7 +197,11 @@ pub fn commit(&mut self, choice: U256) -> Result<(), Vec<u8>> {
     Ok(())
 }
 ```
-The `commit` method allows players to commit their choices and place bets. It is marked as `#[payable]`, which means it can receive Ether along with the function call. Here's how it works:
+The `commit` method allows players to commit their choices and place bets. It is marked as `#[payable]`, which means it can receive Ether along with the function call.
+
+Notice the use of `get` methods, such as `self.locked.get()`, `self.stage.get()`, and `self.bet.get()`, to retrieve the current values of the contract's storage variables. These methods allow reading the state without modifying it.
+
+The `commit` method performs the following checks and actions:
 - It first checks if the contract is locked using `self.locked.get()`. If the contract is locked, it returns an error with the message "Contract is locked".
 - It retrieves the current player index based on the `stage` using `self.stage.get()`.
 - It ensures that the current stage is valid for committing (0 or 1) by checking if `player_index` is greater than 1. If it is, it returns an error with the message "Invalid stage for commit".
@@ -226,9 +236,13 @@ pub fn distribute(&mut self) -> Result<(), Vec<u8>> {
     Ok(())
 }
 ```
-The `distribute` method is responsible for determining the winner and distributing the winnings. Here's how it works:
+The `distribute` method is responsible for determining the winner and distributing the winnings.
+
+It uses `get` methods to retrieve the choices made by both players (`self.player_choices.get(U256::from(0))` and `self.player_choices.get(U256::from(1))`), the bet amount (`self.bet.get()`), and the winner's address (`self.player_addresses.get(winner)`).
+
+The `distribute` method performs the following actions:
 - It first checks if the current stage is valid for distribution (stage 2) by comparing `self.stage.get()` with `U256::from(2)`. If the stage is not 2, it returns an error with the message "Invalid stage for distribute".
-- It retrieves the choices made by both players using `self.player_choices.get(U256::from(0))` and `self.player_choices.get(U256::from(1))`, and converts them from `U256` to `Choice` using the `From` trait.
+- It retrieves the choices made by both players and converts them from `U256` to `Choice` using the `From` trait.
 - The winner is determined based on the classic rules of Rock Paper Scissors using a `match` expression. If player 0 wins, `U256::from(0)` is returned. If player 1 wins, `U256::from(1)` is returned. If there is a draw, an error with the message "Draw" is returned.
 - The winning amount is calculated as twice the bet amount using `self.bet.get() * U256::from(2)`.
 - The winner's address is retrieved from the `player_addresses` mapping using `self.player_addresses.get(winner)`.
@@ -236,10 +250,21 @@ The `distribute` method is responsible for determining the winner and distributi
 - The `stage` is reset to 0 for a new game using `self.stage.set(U256::from(0))`.
 - Finally, it returns `Ok(())` to indicate a successful distribution.
 
+It's important to note that when an external method does not modify the contract's state, it should take `&self` as the argument instead of `&mut self`. This indicates that the method has read-only access to the contract's state and cannot modify it.
+
+For example, if we had a method that only retrieves the current bet amount without modifying it, we would define it as follows:
+
+```rust
+pub fn get_bet(&self) -> U256 {
+    self.bet.get()
+}
+```
+
+In this case, `&self` is used since the method only reads the contract's state using `self.bet.get()` and does not modify it.
+
 These methods cover the core functionality of the Rock Paper Scissors game. Players can commit their choices and place bets using the `commit` method, and the winner is determined and winnings are distributed using the `distribute` method. The `lock` and `unlock` methods provide additional control over the game state.
 
 With the contract methods implemented, you can now proceed to check the contract's validity and deploy it to the Stylus network as described in the previous steps.
-
 
 ## Step 4: Check the Contract Validity
 
@@ -253,7 +278,7 @@ If the contract passes the validation, you should see a success message.
 
 ## Step 5: Deploy the Contract
 
-To deploy the contract to the Stylus testnet, you'll need to have some testnet ETH in your developer wallet. Follow the steps in the Quickstart tutorial to acquire and bridge testnet ETH to your wallet.
+To deploy the contract to the Stylus testnet, you'll need to have some testnet ETH in your developer wallet. Follow the steps in the [Quickstart tutorial](https://docs.arbitrum.io/stylus/stylus-quickstart) to acquire and bridge testnet ETH to your wallet.
 
 Once you have testnet ETH, run the following command to deploy the contract:
 
